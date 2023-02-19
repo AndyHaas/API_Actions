@@ -19,15 +19,7 @@
       &quot;post&quot;: {
         &quot;description&quot;: &quot;&quot;,
         &quot;operationId&quot;: &quot;Language Translation API&quot;,
-        &quot;parameters&quot;: [{
-            &quot;name&quot;: &quot;apiKey&quot;,
-            &quot;in&quot;: &quot;header&quot;,
-            &quot;required&quot;: true,
-            &quot;allowEmptyValue&quot;: false,
-            &quot;schema&quot;: {
-              &quot;type&quot;: &quot;string&quot;
-            }
-          },
+        &quot;parameters&quot;: [
           {
             &quot;name&quot;: &quot;target&quot;,
             &quot;in&quot;: &quot;query&quot;,
