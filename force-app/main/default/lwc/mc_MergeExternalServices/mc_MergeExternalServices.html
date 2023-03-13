@@ -1,0 +1,50 @@
+<template>
+    <div class="slds-grid slds-gutters">
+        <div class="slds-col slds-size_6-of-12 slds-box">
+          <span>Convert From</span>
+            <lightning-datatable
+                key-field="id"
+                data={data}
+                columns={columns}
+                max-row-selection=1
+                onrowselection={handleConvertFromRowSelection}
+                is-loading={isLoading}
+                >
+            </lightning-datatable>
+        </div>
+        <div class="slds-col slds-size_6-of-12 slds-box">
+          <span>Convert To</span>
+            <lightning-datatable
+                key-field="id"
+                data={data}
+                columns={columns}
+                max-row-selection=1
+                onrowselection={handleConvertToRowSelection}
+                is-loading={isLoading}
+                >
+            </lightning-datatable>
+        </div>
+      </div>
+      <template if:true={errorSameRowSelected}>
+        <div class="slds-notify_container slds-is-relative">
+            <div class="slds-notify slds-notify_toast slds-theme_error" role="status">
+              <span class="slds-assistive-text">error</span>
+              <lightning-icon icon-name="utility:error" class="white-icon" alternative-text="error" title="error"></lightning-icon>
+              <div class="slds-notify__content">
+                <h2 class="slds-text-heading_small ">You can't select the same External Service in both tables</h2>
+              </div>
+              <div class="slds-notify__close">
+                <button class="slds-button slds-button_icon slds-button_icon-inverse" title="Close">
+                  <svg class="slds-button__icon slds-button__icon_large" aria-hidden="true">
+                    <use xlink:href="/assets/icons/utility-sprite/svg/symbols.svg#close"></use>
+                  </svg>
+                </button>
+              </div>
+            </div>
+        </div>
+      </template>
+
+      <template if:true={bothRowsSelected}>
+        <lightning-button variant="success" label="Merge External Services" title="Successful action" onclick={handleMerge} class="slds-m-left_x-small"></lightning-button>
+      </template>
+</template>
