@@ -92,6 +92,7 @@ export default class Mc_MergeExternalServices extends LightningElement {
     }
 
     handleMerge() {
+        this.isLoading = true;
         console.log('handleMerge');
 
         console.log('convertFromRowSelectedValue: ' + this.convertFromRowSelectedValue);
@@ -99,6 +100,15 @@ export default class Mc_MergeExternalServices extends LightningElement {
         console.log('typeof convertFromRowSelectedValue: ' + typeof this.convertFromRowSelectedValue);
 
         mergeExternalServices({ convertFrom: this.convertFromRowSelectedValue, convertTo: this.convertToRowSelectedValue })
+            .then(result => {
+                console.log('Results: ' + (result));
+                this.isLoading = false;
+            })
+            .catch(error => {
+                console.log('Errors: ' + (error));
+                this.isLoading = false;
+            });
+
 
     }
 

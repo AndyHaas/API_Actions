@@ -41,67 +41,138 @@ public with sharing class mc_MergeExternalServices {
     }
 
     @AuraEnabled
-    public static Boolean mergeExternalServices(String convertFrom, String convertTo) {
-        // Create the services
-        mc_MergeExternalServices_Definition convertFromService = new mc_MergeExternalServices_Definition();
-        mc_MergeExternalServices_Definition convertToService = new mc_MergeExternalServices_Definition();
+    public static String mergeExternalServices(String convertFrom, String convertTo) {
+        // Convert the JSON strings to maps
+        Map<String, Object> convertFromMap = (Map<String, Object>) JSON.deserializeUntyped(convertFrom);
+        Map<String, Object> convertToMap = (Map<String, Object>) JSON.deserializeUntyped(convertTo);
 
-        // Convert the convertFrom and convertTo to mc_MergeExternalServices_Definition
-        convertFromService = (mc_MergeExternalServices_Definition) JSON.deserialize(convertFrom, mc_MergeExternalServices_Definition.class);
-        convertToService = (mc_MergeExternalServices_Definition) JSON.deserialize(convertTo, mc_MergeExternalServices_Definition.class);
+        System.debug('convertFromMap: ' + (convertFromMap));
+        System.debug('convertToMap: ' + (convertToMap));
 
-        // Convert the Schema to a String
-        String convertFromSchemaString = convertFromService.Schema;
-        String convertToSchemaString = convertToService.Schema;
-        System.debug('convertFromSchemaString: ' + convertFromSchemaString);
-        System.debug('convertToSchemaString: ' + convertToSchemaString);
-        
-        // Within the convertFromSchemaString find the paths key
-        Integer convertFromPathsIndex = convertFromSchemaString.indexOf('paths');
-        Integer convertFromPathsEndIndex = convertFromSchemaString.indexOf('}', convertFromPathsIndex);
-        String convertFromPathsString = convertFromSchemaString.substring(convertFromPathsIndex, convertFromPathsEndIndex + 1);
-        System.debug('convertFromPathsString: ' + convertFromPathsString);
+        System.debug('convertFromMap.get("Schema"): ' + JSON.serializePretty(convertFromMap.get('Schema')));
+        System.debug('convertToMap.get("Schema"): ' + JSON.serializePretty(convertToMap.get('Schema')));
 
-        // Within the convertToSchemaString find the paths key and the end of the paths key
-        Integer convertToPathsIndex = convertToSchemaString.indexOf('paths');
-        Integer convertToPathsEndIndex = convertToSchemaString.indexOf('}', convertToPathsIndex);
-        String convertToPathsString = convertToSchemaString.substring(convertToPathsIndex, convertToPathsEndIndex + 1);
-        System.debug('convertToPathsString: ' + convertToPathsString);
-        
-        // Remove } from the end of convertToPathsString
-        String convertToSchemaStringUpdated = convertToSchemaString.substring(0, convertToPathsEndIndex);
-        System.debug('convertToSchemaStringUpdated: ' + convertToSchemaStringUpdated);
+        // Get the "Id" from both maps
+        String convertToId = (String) convertToMap.get('Id');
+        String convertFromId = (String) convertFromMap.get('Id');
 
-        // Add comma to the end of convertToSchemaStringUpdated
-        convertToSchemaStringUpdated = convertToSchemaStringUpdated + ',';
-        System.debug('convertToSchemaStringUpdated: ' + convertToSchemaStringUpdated);
+        // Get the "Schema" strings from both maps
+        String convertFromSchema = (String) convertFromMap.get('Schema');
+        String convertToSchema = (String) convertToMap.get('Schema');
 
-        System.debug('convertFromPathsString: ' + convertFromPathsString);
-        // Remove paths key from the convertFromPathsString and remove the first { from the string and remove the last } from the string
-        convertFromPathsString = convertFromPathsString.replace('paths', '');
-        System.debug('convertFromPathsString 1: ' + convertFromPathsString);
+        // Convert the "Schema" strings to maps
+        Map<String, Object> convertFromSchemaMap = (Map<String, Object>) JSON.deserializeUntyped(convertFromSchema);
+        Map<String, Object> convertToSchemaMap = (Map<String, Object>) JSON.deserializeUntyped(convertToSchema);
 
-        // Find the first { and remove it
-        Integer convertFromPathsFirstIndex = convertFromPathsString.indexOf('{');
-        convertFromPathsString = convertFromPathsString.substring(convertFromPathsFirstIndex + 1, convertFromPathsString.length());
-        System.debug('convertFromPathsString 2: ' + convertFromPathsString);
+        System.debug('convertFromSchemaMap: ' + JSON.serializePretty(convertFromSchemaMap));
+        System.debug('convertToSchemaMap: ' + JSON.serializePretty(convertToSchemaMap));
 
-        // Find the last } and remove it
-        // Integer convertFromPathsLastIndex = convertFromPathsString.lastIndexOf('}');
-        // convertFromPathsString = convertFromPathsString.substring(0, convertFromPathsLastIndex);
-        // System.debug('convertFromPathsString 3: ' + convertFromPathsString);
+        // Get the "paths" objects from both maps
+        Map<String, Object> convertFromPaths = (Map<String, Object>) convertFromSchemaMap.get('paths');
+        Map<String, Object> convertToPaths = (Map<String, Object>) convertToSchemaMap.get('paths');
 
-        // Find the first : and remove it
-        // Integer convertFromPathsFirstColonIndex = convertFromPathsString.indexOf(':');
-        // convertFromPathsString = convertFromPathsString.substring(convertFromPathsFirstColonIndex + 1, convertFromPathsString.length());
-        // System.debug('convertFromPathsString 4: ' + convertFromPathsString);
-    
+        System.debug('convertFromPaths: ' + JSON.serializePretty(convertFromPaths));
+        System.debug('convertToPaths: ' + JSON.serializePretty(convertToPaths));
 
-        // Add convertFromPathsString to the end of convertToSchemaStringUpdated
-        convertToSchemaStringUpdated = convertToSchemaStringUpdated + convertFromPathsString;
-        System.debug('convertToSchemaStringUpdated 0: ' + convertToSchemaStringUpdated);
+        // Combine the "paths" objects into a single map
+        Map<String, Object> combinedPaths = new Map<String, Object>();
+        combinedPaths.putAll(convertFromPaths);
+        combinedPaths.putAll(convertToPaths);
 
-        return true;
+        System.debug('combinedPaths: ' + JSON.serializePretty(combinedPaths));
+
+        // Delete the "paths" object from the convertToMap
+        convertToSchemaMap.remove('paths');
+
+        // Replace the paths string in the convertToMap with the combined "paths" object
+        convertToSchemaMap.put('paths', combinedPaths);
+
+        System.debug('convertToSchemaMap UPDATED: ' + JSON.serializePretty(convertToSchemaMap));
+
+        // Delete the "Schema" object from the convertToMap
+        convertToMap.remove('Schema');
+
+        // Put the convertToSchemaMap back into the convertToMap
+        convertToMap.put('Schema', convertToSchemaMap);
+
+        System.debug('convertToMap UPDATED: ' + JSON.serializePretty(convertToMap));
+
+        // Serialize the combined map into a JSON string
+        String combinedJson = JSON.serialize(convertToMap);
+
+        System.debug('combinedJson: ' + combinedJson);
+
+        // Convert combinedPaths to a string
+        String combinedPathsString = JSON.serialize(convertToSchemaMap);
+
+        //return combinedPathsString;
+
+        // Update the External Service Registration record
+        return updateExternalServices(combinedPathsString, convertToId, convertFromId);
+
+    }
+
+    public static String updateExternalServices(String newSchema, String externalToServiceId, String externalFromServiceId) {
+        // Get the URL for current org
+        // SELECT MasterLabel, NamedCredential, Schema, SchemaType, Status FROM ExternalServiceRegistration
+        String orgUrl = URL.getSalesforceBaseUrl().toExternalForm() + '/services/data/v57.0/tooling/sobjects/ExternalServiceRegistration/' + externalToServiceId;
+
+        System.debug('newSchema: ' + JSON.serializePretty(newSchema));
+
+        // Create the request
+        HttpRequest req = new HttpRequest();
+        req.setHeader('Authorization', 'Bearer ' + UserInfo.getSessionId());
+        req.setEndpoint(orgUrl);
+        req.setMethod('PATCH');
+        req.setBody('{"Schema": "' + JSON.serialize(newSchema) + '"}');
+        req.setHeader('Content-Type', 'application/json');
+
+        // Send the request
+        Http http = new Http();
+        HttpResponse res = http.send(req);
+
+        System.debug('res: ' + JSON.serialize(res.getBody()));
+
+        // Check the response
+        if (res.getStatusCode() != 204) {
+            System.debug('Error updating ExternalServiceRegistration object. Response status: ' + res.getStatus());
+            System.debug('Response body: ' + res.getBody());
+            throw new AuraHandledException('Error updating External Service Registration');
+        } else {
+            System.debug('ExternalServiceRegistration object updated successfully.');
+
+            // Delete the old External Service Registration record
+            return deleteExternalServices(externalFromServiceId);
+        }
+
+    }
+
+    public static String deleteExternalServices(String externalServiceId) {
+        // Get the URL for current org
+        // SELECT MasterLabel, NamedCredential, Schema, SchemaType, Status FROM ExternalServiceRegistration
+        String orgUrl = URL.getSalesforceBaseUrl().toExternalForm() + '/services/data/v57.0/tooling/sobjects/ExternalServiceRegistration/' + externalServiceId;
+
+        // Create the request
+        HttpRequest req = new HttpRequest();
+        req.setHeader('Authorization', 'Bearer ' + UserInfo.getSessionId());
+        req.setEndpoint(orgUrl);
+        req.setMethod('DELETE');
+
+        // Send the request
+        Http http = new Http();
+        HttpResponse res = http.send(req);
+
+        System.debug('res: ' + JSON.serialize(res.getBody()));
+
+        // Check the response
+        if (res.getStatusCode() != 204) {
+            System.debug('Error deleting ExternalServiceRegistration object. Response status: ' + res.getStatus());
+            System.debug('Response body: ' + res.getBody());
+            throw new AuraHandledException('Error deleting External Service Registration');
+        } else {
+            System.debug('ExternalServiceRegistration object deleted successfully.');
+            return 'Success';
+        }
 
     }
 }
