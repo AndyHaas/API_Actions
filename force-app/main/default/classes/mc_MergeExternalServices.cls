@@ -119,12 +119,16 @@ public with sharing class mc_MergeExternalServices {
 
         System.debug('newSchema: ' + JSON.serializePretty(newSchema));
 
+        // Create Body
+        Map<String, Object> body = new Map<String, Object>();
+        body.put('Schema', newSchema);
+
         // Create the request
         HttpRequest req = new HttpRequest();
         req.setHeader('Authorization', 'Bearer ' + UserInfo.getSessionId());
         req.setEndpoint(orgUrl);
         req.setMethod('PATCH');
-        req.setBody('{"Schema": "' + JSON.serialize(newSchema) + '"}');
+        req.setBody(JSON.serialize(body));
         req.setHeader('Content-Type', 'application/json');
 
         // Send the request
