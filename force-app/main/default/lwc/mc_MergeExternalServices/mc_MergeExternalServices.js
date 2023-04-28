@@ -1,6 +1,7 @@
 import { LightningElement } from 'lwc';
 import getExternalServices from '@salesforce/apex/mc_MergeExternalServices.getExternalServices';
 import mergeExternalServices from '@salesforce/apex/mc_MergeExternalServices.mergeExternalServices';
+import getNamedCredentials from '@salesforce/apex/mc_MergeExternalServices.getNamedCredentials';
 
 const columns = [
     { label: 'Id', fieldName: 'Id' },
@@ -15,24 +16,29 @@ export default class Mc_MergeExternalServices extends LightningElement {
     data = [];
     columns = columns;
     isLoading = false;
+    isError = false;
+    errorMessage = '';
 
-    convertFromRowSelected = false;
-    convertToRowSelected = false;
-    convertFromRowSelectedValue = '';
-    convertToRowSelectedValue = '';
-    convertFromRowSelectedId = '';
-    convertToRowSelectedId = '';
-    bothRowsSelected = false;
+    // Selected Rows
+    isMoreThanOneRowSelected = false;
+    selectedRows = [];
+    sizeOfSelectedRows = 0;
+
+    newExternalServiceName = '';
+
+    namedCredentialOptions = [{}];
+    selectedNamedCredentialValue = '';
+    showMergeButton = false;
 
     errorSameRowSelected = false;
 
     connectedCallback() {
         this.isLoading = true;
-        this.getExternalServices();
+        this.getNamedCredentials();
     }
 
     getExternalServices() {
-        getExternalServices()
+        getExternalServices({ namedCredentialName: this.selectedNamedCredentialValue})
             .then(result => {
                 console.log('Results: ' + JSON.stringify(result));
                 this.data = result;
@@ -41,63 +47,63 @@ export default class Mc_MergeExternalServices extends LightningElement {
             .catch(error => {
                 console.log('Errors: ' + JSON.stringify(error));
                 this.isLoading = false;
+                this.isError = true;
+                this.errorMessage = JSON.stringify(error);
             });
             
     }
 
-    handleConvertToRowSelection(event) {
-        console.log('handleConvertToRowSelection: ' + JSON.stringify(event.detail));
-
-        // Set the selected row
-        this.convertToRowSelected = true;
-        this.convertToRowSelectedValue = JSON.stringify(event.detail.selectedRows[0]);
-        this.convertToRowSelectedId = event.detail.selectedRows[0].Id;
-
-        // Check if the same row is selected in both tables
-        if (this.convertFromRowSelectedId === this.convertToRowSelectedId) {
-            this.errorSameRowSelected = true;
-        } else {
-            this.errorSameRowSelected = false;
-        }
-
-        // Check if both rows are selected
-        if (this.convertFromRowSelected && this.convertToRowSelected) {
-            this.bothRowsSelected = true;
-        } else {
-            this.bothRowsSelected = false;
-        }
+    getNamedCredentials() {
+        getNamedCredentials()
+            .then(result => {
+                console.log('Results: ' + JSON.stringify(result));
+                this.namedCredentialOptions = result;
+                this.isLoading = false;
+            })
+            .catch(error => {
+                console.log('Errors: ' + JSON.stringify(error));
+                this.isLoading = false;
+                this.isError = true;
+                this.errorMessage = JSON.stringify(error);
+            });
     }
 
-    handleConvertFromRowSelection(event) {
-        console.log('handleConvertFromRowSelection: ' + JSON.stringify(event.detail));
+    handleNewExternalServiceNameChange(event) {
+        this.newExternalServiceName = event.detail.value;
+        console.log('handleNewExternalServiceNameChange: ' + this.newExternalServiceName);
+        this.handleMergeButton();
+    }
 
-        // Set the selected row
-        this.convertFromRowSelected = true;
-        this.convertFromRowSelectedValue = JSON.stringify(event.detail.selectedRows[0]);
-        this.convertFromRowSelectedId = event.detail.selectedRows[0].Id;
+    handleNamedCredentialChange(event) {
+        this.isLoading = true;
+        console.log('handleNamedCredentialChange: ' + event.detail.value);
+        this.selectedNamedCredentialValue = event.detail.value;
+        this.isNamedCredentialSelected = true;
+        this.getExternalServices();
+    }
 
-        // Check if the same row is selected in both tables
-        if (this.convertFromRowSelectedId === this.convertToRowSelectedId) {
-            this.errorSameRowSelected = true;
+    handleRowSelection(event) {
+        // Add selected rows to selectedRows array
+        this.selectedRows = event.detail.selectedRows;
+        this.sizeOfSelectedRows = this.selectedRows.length;
+        console.log('handleRowSelection: ' + this.sizeOfSelectedRows);
+        console.log('handleRowSelection: ' + JSON.stringify(this.selectedRows));
+        this.handleMergeButton();
+    }
+
+    // Will hide/show the merge button based on validity of the form
+    handleMergeButton() {
+        console.log('handleMergeButton');
+        if (this.sizeOfSelectedRows > 1 && this.newExternalServiceName != '') {
+            this.showMergeButton = true;
         } else {
-            this.errorSameRowSelected = false;
-        }
-
-        // Check if both rows are selected
-        if (this.convertFromRowSelected && this.convertToRowSelected) {
-            this.bothRowsSelected = true;
-        } else {
-            this.bothRowsSelected = false;
+            this.showMergeButton = false;
         }
     }
 
     handleMerge() {
         this.isLoading = true;
         console.log('handleMerge');
-
-        console.log('convertFromRowSelectedValue: ' + this.convertFromRowSelectedValue);
-        console.log('convertToRowSelectedValue: ' + this.convertToRowSelectedValue);
-        console.log('typeof convertFromRowSelectedValue: ' + typeof this.convertFromRowSelectedValue);
 
         mergeExternalServices({ convertFrom: this.convertFromRowSelectedValue, convertTo: this.convertToRowSelectedValue })
             .then(result => {
@@ -107,6 +113,8 @@ export default class Mc_MergeExternalServices extends LightningElement {
             .catch(error => {
                 console.log('Errors: ' + (error));
                 this.isLoading = false;
+                this.isError = true;
+                this.errorMessage = JSON.stringify(error);
             });
 
 
